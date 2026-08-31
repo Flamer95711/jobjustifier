@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>LinkedIn Job Scraper — Live View</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="topbar">
+    <div class="brand">
+      <span class="brand-mark">⚡</span>
+      <div class="brand-text">
+        <div class="brand-title">LinkedIn Job Scraper</div>
+        <div class="brand-sub">Live view &middot; fraud triage</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="viewUrl" class="view-url">Not started yet</span>
+      <span id="liveBadge" class="live-badge idle"><span class="dot"></span>Idle</span>
+    </div>
+  </div>
+
+  <aside id="sidebar">
+    <div id="modeTabs" class="tabs">
+      <button class="tab active" data-mode="public">
+        <span class="tab-icon">🌐</span> Public
+      </button>
+      <button class="tab" data-mode="auth">
+        <span class="tab-icon">🔐</span> Authenticated
+      </button>
+    </div>
+
+    <p id="modeNote" class="note">
+      Scrapes LinkedIn's logged-out job search pages. Lower risk, still against LinkedIn's ToS —
+      keep volume low.
+    </p>
+
+    <div id="authControls" class="hidden">
+      <button id="loginBtn" class="secondary">
+        <span class="btn-icon">🔑</span> Open LinkedIn Login
+      </button>
+      <div id="loginStatus" class="status-pill unknown"><span class="dot"></span>Login status unknown</div>
+    </div>
+
+    <form id="scrapeForm" class="card">
+      <label>Job profile
+        <input type="text" id="keywords" list="jobProfileList" placeholder="Pick one or type your own" required autocomplete="off" />
+        <datalist id="jobProfileList">
+          <option value="Software Engineer">
+          <option value="Data Analyst">
+          <option value="Data Scientist">
+          <option value="Data Engineer">
+          <option value="Machine Learning Engineer">
+          <option value="Product Manager">
+          <option value="Project Manager">
+          <option value="Business Analyst">
+          <option value="Frontend Developer">
+          <option value="Backend Developer">
+          <option value="Full Stack Developer">
+          <option value="DevOps Engineer">
+          <option value="UX Designer">
+          <option value="UI Designer">
+          <option value="Graphic Designer">
+          <option value="Marketing Manager">
+          <option value="Sales Executive">
+          <option value="HR Manager">
+          <option value="Financial Analyst">
+          <option value="Accountant">
+          <option value="Customer Support">
+          <option value="Content Writer">
+          <option value="Operations Manager">
+        </datalist>
+      </label>
+      <label>Location
+        <input type="text" id="location" list="locationList" placeholder="Pick one or type your own" autocomplete="off" />
+        <datalist id="locationList">
+          <option value="Remote">
+          <option value="United States">
+          <option value="United Kingdom">
+          <option value="Canada">
+          <option value="India">
+          <option value="Germany">
+          <option value="Australia">
+          <option value="Singapore">
+          <option value="United Arab Emirates">
+          <option value="New York, United States">
+          <option value="San Francisco, United States">
+          <option value="London, United Kingdom">
+          <option value="Bangalore, India">
+          <option value="Toronto, Canada">
+          <option value="Berlin, Germany">
+          <option value="Sydney, Australia">
+        </datalist>
+      </label>
+      <div class="field-row">
+        <label>Experience level
+          <select id="experienceLevel">
+            <option value="">Any</option>
+            <option value="internship">Internship</option>
+            <option value="entry">Entry level</option>
+            <option value="associate">Associate</option>
+            <option value="mid-senior">Mid-Senior level</option>
+            <option value="director">Director</option>
+            <option value="executive">Executive</option>
+          </select>
+        </label>
+        <label>Years of experience
+          <input type="number" id="experienceYears" placeholder="e.g. 3" min="0" max="50" />
+        </label>
+      </div>
+      <label>Posted within (hours)
+        <input type="number" id="postedWithinHours" placeholder="e.g. 1 = last hour, blank = any time" min="1" />
+      </label>
+      <label>Max jobs
+        <input type="number" id="maxJobs" value="15" min="1" max="100" />
+      </label>
+      <div class="button-row">
+        <button type="submit" id="startBtn" class="primary">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Start scrape
+        </button>
+        <button type="button" id="stopBtn" class="danger" disabled>
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          Stop
+        </button>
+      </div>
+    </form>
+
+    <h2>Progress</h2>
+    <div id="log" class="log">
+      <div class="log-empty">Progress will show up here once you start a scrape.</div>
+    </div>
+
+    <button id="exportBtn" class="export-btn" disabled>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/>
+      </svg>
+      Export to Excel (.xlsx)
+    </button>
+
+    <h2>Results (<span id="resultCount">0</span>)</h2>
+    <div id="resultsWrap">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="empty-row"><td colspan="3">No results yet — run a scrape to see scored postings here.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </aside>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

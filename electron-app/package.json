@@ -1,0 +1,16 @@
+{
+  "name": "linkedin-scrape-viewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live-view Electron app for scraping LinkedIn job postings (public + authenticated) and exporting scored results to Excel.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

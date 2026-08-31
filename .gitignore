@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.DS_Store
+Thumbs.db
+
+# Project-specific
+data/.linkedin_cookies.pkl
+electron-app/node_modules/
+electron-app/dist/
+
