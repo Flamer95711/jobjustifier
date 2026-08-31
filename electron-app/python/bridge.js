@@ -9,7 +9,9 @@ const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const SCORE_SCRIPT = path.join(PROJECT_ROOT, "src", "score_records.py");
 
 function pickPython() {
-  return process.env.PYTHON_BIN || "python3";
+  if (process.env.PYTHON_BIN) return process.env.PYTHON_BIN;
+  if (process.env.PYTHON) return process.env.PYTHON;
+  return process.platform === "win32" ? "python" : "python3";
 }
 
 function scoreRecords(records, { threshold = 0.5 } = {}) {

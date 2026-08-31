@@ -13,15 +13,20 @@ Required Experience, Risk Level, and Fraud %.
 """
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import joblib
 import pandas as pd
+from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from features import engineer_features  # noqa: E402
+from utils import extract_experience_from_text, update_google_sheet  # noqa: E402
+
+load_dotenv()
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "models" / "fake_job_classifier.joblib"
@@ -57,6 +62,7 @@ def main():
     parser.add_argument("--max-jobs", type=int, default=25)
     parser.add_argument("--headless", action="store_true", help="auth mode only")
     parser.add_argument("--threshold", type=float, default=0.5, help="probability cutoff for flagging fraudulent")
+    parser.add_argument("--sheet-url", default=None, help="Google Sheet URL to append results directly to")
     args = parser.parse_args()
 
     if not MODEL_PATH.exists():
@@ -74,6 +80,12 @@ def main():
     if not records:
         print("No jobs scraped, nothing to score.")
         return
+
+    # Parse required experience from job descriptions
+    for rec in records:
+        rec["required_experience"] = extract_experience_from_text(
+            rec.get("description"), fallback_seniority=rec.get("required_experience")
+        )
 
     df = pd.DataFrame(records)
     featured = engineer_features(df)
@@ -103,6 +115,10 @@ def main():
     safe_keywords = args.keywords.replace(" ", "_")[:30]
     out_path = OUT_DIR / f"scored_{safe_keywords}_{timestamp}.xlsx"
     result.to_excel(out_path, index=False)
+
+    sheet_url = args.sheet_url or os.getenv("GOOGLE_SHEET_URL")
+    if sheet_url:
+        update_google_sheet(sheet_url, result)
 
     n_flagged = int(pred.sum())
     print(f"\nScored {len(df)} postings — {n_flagged} flagged as likely fraudulent (threshold={args.threshold}).")

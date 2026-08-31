@@ -147,13 +147,14 @@ function renderResults(records) {
   els.resultsBody.innerHTML = "";
   els.resultCount.textContent = String(records.length);
   if (records.length === 0) {
-    els.resultsBody.innerHTML = '<tr class="empty-row"><td colspan="3">No results yet — run a scrape to see scored postings here.</td></tr>';
+    els.resultsBody.innerHTML = '<tr class="empty-row"><td colspan="4">No results yet — run a scrape to see scored postings here.</td></tr>';
     return;
   }
   for (const rec of records) {
     const tr = document.createElement("tr");
     const badge = riskBadge(rec.fraud_probability);
-    tr.innerHTML = `<td>${escapeHtml(rec.title || "—")}</td><td>${escapeHtml(rec.company_name || "—")}</td><td><span class="risk-badge ${badge.cls}">${badge.label}</span></td>`;
+    const expText = rec.required_experience || "Not Specified";
+    tr.innerHTML = `<td>${escapeHtml(rec.title || "—")}</td><td>${escapeHtml(rec.company_name || "—")}</td><td>${escapeHtml(expText)}</td><td><span class="risk-badge ${badge.cls}">${badge.label}</span></td>`;
     els.resultsBody.appendChild(tr);
   }
 }

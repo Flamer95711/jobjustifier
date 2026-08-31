@@ -149,15 +149,15 @@ body {
   100% { box-shadow: 0 0 0 0 rgba(255, 108, 55, 0); }
 }
 
-/* ---------- sidebar ---------- */
+/* ---------- left sidebar (inputs) ---------- */
 
 #sidebar {
   position: fixed;
   top: 48px;
   left: 0;
   bottom: 0;
-  width: 420px;
-  padding: 16px 18px 18px;
+  width: 320px;
+  padding: 16px 14px;
   overflow-y: auto;
   background: var(--panel);
   border-right: 1px solid var(--border);
@@ -166,12 +166,39 @@ body {
   gap: 12px;
 }
 
+/* ---------- right panel (progress + results) ---------- */
+
+#rightPanel {
+  position: fixed;
+  top: 48px;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  padding: 14px;
+  overflow-y: auto;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.results-header {
+  margin-top: 8px;
+}
+
 h2 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  margin: 4px 0 2px;
+  margin: 0;
   font-weight: 700;
 }
 
@@ -384,6 +411,9 @@ button:disabled {
 }
 
 .export-btn {
+  flex: none;
+  padding: 5px 10px;
+  font-size: 11px;
   background: rgba(52, 211, 153, 0.1);
   border-color: rgba(52, 211, 153, 0.3);
   color: #7be3bb;
@@ -392,7 +422,7 @@ button:disabled {
 /* ---------- log ---------- */
 
 .log {
-  height: 150px;
+  height: 160px;
   overflow-y: auto;
   background: var(--panel-alt);
   border: 1px solid var(--border);
@@ -441,7 +471,7 @@ button:disabled {
 
 #resultsWrap {
   flex: 1;
-  min-height: 90px;
+  min-height: 220px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -451,19 +481,19 @@ button:disabled {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 th, td {
   text-align: left;
-  padding: 7px 10px;
+  padding: 7px 8px;
   border-bottom: 1px solid var(--border-soft);
 }
 
 th {
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 10.5px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   position: sticky;
@@ -489,10 +519,10 @@ tbody tr:hover td {
 .risk-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
+  gap: 4px;
+  padding: 2px 6px;
   border-radius: 3px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }

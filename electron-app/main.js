@@ -1,7 +1,23 @@
-const { app, BrowserWindow, BrowserView, ipcMain, dialog, session } = require("electron");
+const electron = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { spawn } = require("child_process");
 const ExcelJS = require("exceljs");
+
+// If executed with plain 'node main.js' or 'nodemon main.js', auto-spawn electron binary
+if (typeof electron === "string" || !electron.app) {
+  console.log("Launching via Electron binary...");
+  const child = spawn(electron, [__dirname, "--no-sandbox"], { stdio: "inherit" });
+  child.on("close", (code) => process.exit(code || 0));
+  return;
+}
+
+const { app, BrowserWindow, BrowserView, ipcMain, dialog } = electron;
+
+if (app && app.commandLine) {
+  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+  app.commandLine.appendSwitch("disable-gpu");
+}
 
 const orchestrator = require("./scraper/orchestrator");
 const { scoreRecords } = require("./python/bridge");
@@ -9,7 +25,8 @@ const { scoreRecords } = require("./python/bridge");
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const SCRAPED_DIR = path.join(PROJECT_ROOT, "data", "scraped");
 
-const SIDEBAR_WIDTH = 420;
+const SIDEBAR_WIDTH = 320;
+const RIGHT_PANEL_WIDTH = 400;
 const TOPBAR_HEIGHT = 48;
 const JOB_PROFILE_MAX_CHARS = 300;
 
@@ -44,7 +61,7 @@ function layoutViews() {
   const bounds = {
     x: SIDEBAR_WIDTH,
     y: TOPBAR_HEIGHT,
-    width: Math.max(0, width - SIDEBAR_WIDTH),
+    width: Math.max(0, width - SIDEBAR_WIDTH - RIGHT_PANEL_WIDTH),
     height: Math.max(0, height - TOPBAR_HEIGHT),
   };
   if (publicView) publicView.setBounds(bounds);
@@ -207,13 +224,58 @@ ipcMain.on("ui:start-scrape", async (_evt, payload) => {
   }
 });
 
-ipcMain.on("ui:stop-scrape", () => {
-  stopRequested = true;
-});
+function loadEnvFile() {
+  const envPath = path.join(PROJECT_ROOT, ".env");
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, "utf8");
+    for (const line of content.split("\n")) {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (match) {
+        const key = match[1];
+        let val = (match[2] || "").trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) process.env[key] = val;
+      }
+    }
+  }
+}
+
+loadEnvFile();
 
 ipcMain.handle("ui:export-excel", async (_evt, { records, keywords }) => {
   if (!records || records.length === 0) {
     throw new Error("No records to export.");
+  }
+
+  const sheetUrl = process.env.GOOGLE_SHEET_URL || "https://script.google.com/macros/s/AKfycbwGGwGhRbaPeiyxB9TldAkF3Z8OS3OWk_kh5zE5gdKJG4EzpCzf4oZqxjs27xkoOeCM/exec";
+
+  if (sheetUrl && sheetUrl.startsWith("http")) {
+    try {
+      const headers = ["Job Role", "Company Name", "Apply Link", "Job Profile", "Required Experience", "Risk Level", "Fraud %"];
+      const rows = records.map((record) => [
+        record.title || "",
+        record.company_name || "",
+        record.source_url || "",
+        truncateText(record.description),
+        record.required_experience || "",
+        riskLevel(record.fraud_probability),
+        record.fraud_probability != null ? (record.fraud_probability * 100).toFixed(1) : "0.0",
+      ]);
+
+      const response = await fetch(sheetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ headers, rows }),
+      });
+
+      if (response.ok) {
+        return { ok: true, path: `Google Sheet (${records.length} rows updated)` };
+      }
+    } catch (err) {
+      console.error("Google Sheet export failed, writing Excel fallback:", err);
+    }
   }
 
   fs.mkdirSync(SCRAPED_DIR, { recursive: true });

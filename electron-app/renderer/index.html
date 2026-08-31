@@ -31,8 +31,7 @@
     </div>
 
     <p id="modeNote" class="note">
-      Scrapes LinkedIn's logged-out job search pages. Lower risk, still against LinkedIn's ToS —
-      keep volume low.
+      Scrapes LinkedIn's logged-out job search pages. Lower risk, still against LinkedIn's ToS — keep volume low.
     </p>
 
     <div id="authControls" class="hidden">
@@ -71,6 +70,7 @@
           <option value="Operations Manager">
         </datalist>
       </label>
+
       <label>Location
         <input type="text" id="location" list="locationList" placeholder="Pick one or type your own" autocomplete="off" />
         <datalist id="locationList">
@@ -92,6 +92,7 @@
           <option value="Sydney, Australia">
         </datalist>
       </label>
+
       <div class="field-row">
         <label>Experience level
           <select id="experienceLevel">
@@ -104,16 +105,19 @@
             <option value="executive">Executive</option>
           </select>
         </label>
-        <label>Years of experience
+        <label>Years exp
           <input type="number" id="experienceYears" placeholder="e.g. 3" min="0" max="50" />
         </label>
       </div>
+
       <label>Posted within (hours)
         <input type="number" id="postedWithinHours" placeholder="e.g. 1 = last hour, blank = any time" min="1" />
       </label>
+
       <label>Max jobs
         <input type="number" id="maxJobs" value="15" min="1" max="100" />
       </label>
+
       <div class="button-row">
         <button type="submit" id="startBtn" class="primary">
           <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -125,31 +129,38 @@
         </button>
       </div>
     </form>
+  </aside>
 
-    <h2>Progress</h2>
+  <aside id="rightPanel">
+    <div class="panel-header">
+      <h2>Progress Log</h2>
+    </div>
     <div id="log" class="log">
       <div class="log-empty">Progress will show up here once you start a scrape.</div>
     </div>
 
-    <button id="exportBtn" class="export-btn" disabled>
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/>
-      </svg>
-      Export to Excel (.xlsx)
-    </button>
+    <div class="panel-header results-header">
+      <h2>Results (<span id="resultCount">0</span>)</h2>
+      <button id="exportBtn" class="export-btn" disabled>
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 3v3h-6V6h6zm-7 0v3H5V6h7zM5 11h7v3H5v-3zm0 8v-3h7v3H5zm14 0h-6v-3h6v3zm0-5h-6v-3h6v3z"/>
+        </svg>
+        Export to Google Sheet
+      </button>
+    </div>
 
-    <h2>Results (<span id="resultCount">0</span>)</h2>
     <div id="resultsWrap">
       <table id="resultsTable">
         <thead>
           <tr>
             <th>Title</th>
             <th>Company</th>
+            <th>Exp</th>
             <th>Risk</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="empty-row"><td colspan="3">No results yet — run a scrape to see scored postings here.</td></tr>
+          <tr class="empty-row"><td colspan="4">No results yet — run a scrape to see scored postings here.</td></tr>
         </tbody>
       </table>
     </div>

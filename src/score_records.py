@@ -19,6 +19,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from features import engineer_features  # noqa: E402
+from utils import extract_experience_from_text  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "models" / "fake_job_classifier.joblib"
@@ -43,6 +44,11 @@ def main():
     if not records:
         print(json.dumps([]))
         return
+
+    for rec in records:
+        rec["required_experience"] = extract_experience_from_text(
+            rec.get("description"), fallback_seniority=rec.get("required_experience")
+        )
 
     df = pd.DataFrame(records)
     featured = engineer_features(df)
