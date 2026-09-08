@@ -12,7 +12,18 @@ Usage:
 import argparse
 import json
 import sys
+import warnings
 from pathlib import Path
+
+# Force UTF-8 stream handling on Windows to prevent cp1252 surrogate escape issues
+if sys.version_info >= (3, 7):
+    try:
+        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+warnings.filterwarnings("ignore")
 
 import joblib
 import pandas as pd
@@ -23,6 +34,16 @@ from utils import extract_experience_from_text  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "models" / "fake_job_classifier.joblib"
+
+
+def clean_surrogates(obj):
+    if isinstance(obj, str):
+        return obj.encode("utf-16", "surrogatepass").decode("utf-16", "replace")
+    elif isinstance(obj, dict):
+        return {k: clean_surrogates(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_surrogates(v) for v in obj]
+    return obj
 
 
 def main():
@@ -45,6 +66,8 @@ def main():
         print(json.dumps([]))
         return
 
+    records = clean_surrogates(records)
+
     for rec in records:
         rec["required_experience"] = extract_experience_from_text(
             rec.get("description"), fallback_seniority=rec.get("required_experience")
@@ -61,7 +84,17 @@ def main():
     df["fraudulent"] = pred
     df = df.where(pd.notnull(df), None)
 
-    print(df.to_json(orient="records"))
+    for col in df.select_dtypes(include=["object"]):
+        df[col] = df[col].apply(
+            lambda x: x.encode("utf-16", "surrogatepass").decode("utf-16", "replace")
+            if isinstance(x, str)
+            else x
+        )
+
+    try:
+        print(df.to_json(orient="records"))
+    except UnicodeEncodeError:
+        print(json.dumps(df.to_dict(orient="records"), ensure_ascii=True))
 
 
 if __name__ == "__main__":

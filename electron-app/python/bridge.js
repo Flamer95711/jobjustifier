@@ -22,6 +22,7 @@ function scoreRecords(records, { threshold = 0.5 } = {}) {
     }
     const proc = spawn(pickPython(), [SCORE_SCRIPT, "--threshold", String(threshold)], {
       cwd: PROJECT_ROOT,
+      env: { ...process.env, PYTHONIOENCODING: "utf-8" },
     });
 
     let stdout = "";
