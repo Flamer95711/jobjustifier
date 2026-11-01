@@ -128,3 +128,208 @@ electron-app/               live-view GUI (public + authenticated), exports .xls
   python/bridge.js           spawns src/score_records.py for fraud scoring
   renderer/                  sidebar UI (tabs, controls, log, results table)
 ```
+
+
+
+
+new project 
+
+# Autonomous Job Application Engine with Human-in-the-Loop (HITL)
+
+## Goal Description
+Build an autonomous, resilient job application automation system capable of reading target job openings from a user-managed **Google Sheet**, navigating through various Applicant Tracking Systems (ATS) and custom job forms (Greenhouse, Lever, Workday, Ashby, BambooHR, etc.), auto-filling candidate details based on a structured resume profile, and seamlessly escalating to the user via **Telegram Bot** whenever an ambiguous question, custom prompt, or blocker is encountered.
+
+Once the user replies on Telegram, the system permanently records the answer in a dynamic Knowledge Base and resumes the application. Additionally, the user can toggle between **Auto-Approve** and **Manual-Approve** modes anytime (via config or dynamic Telegram command), and can plug in **any LLM API key** (Gemini, OpenAI, Anthropic, Groq, OpenRouter, or local Ollama).
+
+---
+
+## User Review & Confirmed Design Choices
+
+> [!IMPORTANT]
+> **Confirmed Choices**:
+> 1. **Communication Channel**: **Telegram Bot** confirmed for instant alerts, screenshots, and inline interactive buttons.
+> 2. **Submission Mode Toggle**: Configurable default (`auto` vs `manual`) in config/`.env`, plus an interactive runtime toggle command (`/mode`) directly in Telegram.
+> 3. **Universal LLM Adapter**: Unified interface (`core/llm_client.py`) allowing you to paste **any API key** (OpenAI, Gemini, Anthropic, OpenRouter, Groq, etc.) with customizable base URLs and model names.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Inputs ["1. Inputs & Configuration"]
+        GS[("Google Sheet\n(Jobs Queue)")]
+        Profile[("Candidate Profile\n& Resume PDF")]
+        Env[(".env / config.yaml\n(Any LLM API Key + Mode Toggle)")]
+        KB[("Persistent Q&A Bank\n(qa_knowledge_base.json)")]
+    end
+
+    subgraph Core_Engine ["2. Application Orchestration"]
+        Worker["Job Runner Engine"]
+        GS -->|Poll 'Queued' Jobs| Worker
+        Profile --> Worker
+        Env --> Worker
+        KB <--> Worker
+
+        Browser["Playwright Stealth Engine\n(Chromium)"]
+        Worker --> Browser
+        ATS["ATS Form Detector\n(Lever, Greenhouse, Workday, Custom)"]
+        Browser --> ATS
+    end
+
+    subgraph Intelligence ["3. Universal LLM Field Matcher"]
+        LLM["Universal LLM Client\n(Gemini / OpenAI / Anthropic / Groq / Ollama)"]
+        Env -->|API Key & Model| LLM
+        ATS -->|DOM Labels & Options| LLM
+        LLM -->|Match Score & Form Filling Data| ATS
+    end
+
+    subgraph HITL ["4. Interactive Telegram Loop"]
+        ATS -->|Unknown / Low Confidence / Essay| TG["Telegram Bot Dispatcher"]
+        TG -->|Screenshot + Question + Inline Buttons| User["User Smartphone / Telegram"]
+        User -->|Tap Option or Type Answer| TG
+        TG -->|Save Answer| KB
+        TG -->|Resume Form Filling| Browser
+        User -.->|'/mode auto' or '/mode manual'| Worker
+    end
+
+    subgraph Submission ["5. Finalization & Status Update"]
+        ATS --> ModeCheck{"Mode Check"}
+        ModeCheck -->|"Manual Mode"| ReviewPrompt["Send Final Screenshot to Telegram\n[Approve & Submit] or [Cancel]"]
+        ReviewPrompt -->|User Clicks Approve| SubmitFinal["Click Submit"]
+        ModeCheck -->|"Auto Mode"| SubmitFinal
+        SubmitFinal --> Confirmation["Save Proof Screenshot\nUpdate Google Sheet to 'Applied'"]
+        Confirmation --> GS
+    end
+```
+
+---
+
+## Proposed Directory & File Structure
+
+```
+job-agent/
+├── .env.example                 # Template for API keys (Telegram, Google, LLM)
+├── .env                         # Your active credentials (ignored by git)
+├── config/
+│   ├── settings.yaml            # Config: submission_mode (auto/manual), timeouts, etc.
+│   ├── candidate_profile.yaml   # Structured resume data (contact, exp, edu, skills)
+│   └── google_service_account.json # Google Sheets service account key
+├── data/
+│   ├── resume.pdf               # Resume file to upload
+│   └── qa_knowledge_base.json   # Auto-growing memory for user answers
+├── core/
+│   ├── llm_client.py            # Universal LLM Client (OpenAI, Gemini, Anthropic, Groq, Ollama)
+│   ├── sheets_manager.py        # Google Sheets reader & status updater
+│   ├── telegram_hitl.py         # Telegram Bot listener, alert sender & mode switcher
+│   ├── profile_parser.py        # Candidate data validator
+│   ├── browser_controller.py    # Playwright stealth browser wrapper
+│   ├── form_matcher.py          # Field extractor & semantic matcher
+│   └── ats_adapters/            # Tailored ATS handlers
+│       ├── base_adapter.py
+│       ├── greenhouse.py
+│       ├── lever.py
+│       ├── workday.py
+│       └── generic_form.py
+├── logs/                        # Screenshots and session audit logs
+├── main.py                      # Master command-line orchestrator
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Detailed Component Specifications
+
+### 1. Universal LLM Adapter (`core/llm_client.py`)
+Allows you to drop in **any API key** from any major provider, or use free/local providers:
+
+```python
+# Support in .env:
+# LLM_PROVIDER = "gemini" | "openai" | "anthropic" | "groq" | "openrouter" | "ollama"
+# LLM_API_KEY  = "your_api_key_here"
+# LLM_MODEL    = "gemini-1.5-flash" | "gpt-4o-mini" | "claude-3-5-sonnet" | "llama-3.3-70b"
+# LLM_BASE_URL = "" (optional for local/proxy endpoints)
+```
+- Standardized `generate_answer(prompt, context)` and `match_fields(form_fields, candidate_profile)`.
+- If no API key is provided, the system falls back to strict regex and fuzzy string matching (`rapidfuzz`).
+
+---
+
+### 2. Auto-Approve vs. Manual-Approve Toggle
+You can switch modes in two ways:
+1. **In `config/settings.yaml` / `.env`**:
+   ```yaml
+   submission:
+     mode: "manual"  # Options: "manual" or "auto"
+   ```
+2. **Dynamically inside Telegram Chat**:
+   - Send `/mode` &rarr; Bot shows inline buttons: `[ 🟢 Switch to Auto ]` | `[ 🟡 Switch to Manual ]`
+   - Or send `/mode auto` or `/mode manual` anytime while the bot is running.
+
+**Behavior in Each Mode**:
+- **`manual` (Recommended)**: Fills 100% of the form, scrolls down to the submit button, takes a crisp full-page screenshot, sends it to your Telegram with:
+  - `[ ✅ Approve & Submit ]`
+  - `[ ❌ Skip / Cancel ]`
+  - `[ ✏️ Edit a Field ]`
+  Only submits upon your click.
+- **`auto`**: Fills all fields, verifies no red validation errors exist on the page, clicks Submit automatically, captures the confirmation page, and sends you a celebratory summary on Telegram.
+
+---
+
+### 3. Telegram HITL (Human-in-the-Loop) Handler (`core/telegram_hitl.py`)
+When the bot hits an unrecognized question, custom essay prompt, or ambiguous dropdown:
+1. Freezes the page and captures an annotated screenshot of the question.
+2. Sends a push notification to your phone:
+   ```
+   🚨 QUESTION BLOCKED: Stripe (Software Engineer)
+   "Do you have experience leading Kubernetes cluster migrations?"
+   ```
+3. If multiple-choice, renders Telegram **Inline Keyboard Buttons**:
+   - `[ Yes, 3+ years ]`
+   - `[ Yes, 1-2 years ]`
+   - `[ No experience ]`
+   - `[ ✍️ Type Custom Answer ]`
+4. When you tap or reply, it:
+   - Types the answer into the browser.
+   - Saves it to `data/qa_knowledge_base.json` so you are **never asked again** for future applications.
+   - Resumes the application process seamlessly.
+
+---
+
+### 4. Google Sheets Sync (`core/sheets_manager.py`)
+- Reads the user-maintained spreadsheet.
+- Expected Sheet Layout:
+  | Row | Job URL | Company | Role | Status | Applied Date | Proof Screenshot | Error Log |
+  | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+  | 2 | `https://jobs.lever.co/...` | Scale AI | Python Engineer | `Queued` | | | |
+- Automatically updates status through lifecycle:
+  `Queued` &rarr; `In Progress` &rarr; `Waiting on Telegram` &rarr; `Applied` (or `Failed`).
+
+---
+
+## Verification & Execution Roadmap
+
+### Step 1: Project Scaffolding & Virtual Environment
+- Initialize directory structure and create `.env.example`.
+- Install dependencies: `playwright`, `playwright-stealth`, `gspread`, `python-telegram-bot`, `pydantic`, `pyyaml`, `litellm` (or direct API clients).
+- Run `playwright install chromium`.
+
+### Step 2: Universal LLM Client & Candidate Profile Tests
+- Build `core/llm_client.py` and test with any provided API key (or dry-run mock).
+- Load and validate `config/candidate_profile.yaml` with schema validation.
+
+### Step 3: Telegram Bot Handshake & Mode Switch Verification
+- Connect to your Telegram Bot token and Chat ID.
+- Test sending an alert with screenshot attachment and inline choice buttons.
+- Test switching `/mode auto` and `/mode manual` dynamically.
+
+### Step 4: Browser Automation & ATS Form Fillers
+- Build `core/browser_controller.py` with stealth mode.
+- Implement adapters for Greenhouse, Lever, and generic forms.
+- Test file upload mechanism (`resume.pdf`).
+
+### Step 5: Google Sheets Integration & Full End-to-End Test
+- Test reading rows from Google Sheets.
+- Run a live test on a sample job application.
+- Verify status and screenshot logging back to Google Sheets and Telegram.
